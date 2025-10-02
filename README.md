@@ -55,3 +55,6 @@ Check out the live MVP deployed on the Sepolia testnet!
 
 ## 📄 License
 Distributed under the MIT License. 
+
+## deploy script
+```forge script script/DeployMomentumFactory.s.sol --rpc-url $ANVIL_RPC_URL --private-key $ANVIL_PRIVATE_KEY --broadcast```

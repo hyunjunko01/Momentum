@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ArrowRight, Microscope, Users, Shield, Sparkles, ChevronRight, TrendingUp } from 'lucide-react';
 
 const projects = [
@@ -80,9 +81,11 @@ export default function DeSciPlatform() {
                 Explore Projects
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 bg-white/5 text-white rounded-xl font-semibold border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                Submit Proposal
-              </button>
+              <Link href="/campaign" passHref>
+                <button className="px-8 py-4 bg-white/5 text-white rounded-xl font-semibold border border-white/10 hover:bg-white/10 transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                  Create Campaign
+                </button>
+              </Link>
             </div>
           </div>
 
@@ -241,9 +244,11 @@ export default function DeSciPlatform() {
               <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">
                 Submit your research project now and get support from our global community
               </p>
-              <button className="px-10 py-4 bg-white text-indigo-600 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105 shadow-xl">
-                Start Your Project
-              </button>
+              <Link href="/campaign" passHref>
+                <button className="px-10 py-4 bg-white text-indigo-600 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all duration-300 hover:scale-105 shadow-xl">
+                  Start Your Project
+                </button>
+              </Link>
             </div>
           </div>
         </div>

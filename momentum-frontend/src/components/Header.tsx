@@ -37,10 +37,10 @@ export const Header = () => {
                             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 group-hover:w-full transition-all duration-300"></span>
                         </Link>
                         <Link
-                            href="/create"
+                            href="/campaign"
                             className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105"
                         >
-                            Submit Proposal
+                            Create Campaign
                         </Link>
                     </nav>
 
