@@ -56,5 +56,24 @@ Check out the live MVP deployed on the Sepolia testnet!
 ## 📄 License
 Distributed under the MIT License. 
 
+## dependency
+
+install dependency of foundry
+
+```
+cd foundry
+forge install OpenZeppelin/openzeppelin-contracts
+```
+
+install dependency of frontend
+```
+cd frontend
+pnpm install
+```
+
+* .env file
+    - you should make .env file to use ProjectId for rainbowKit and test on anvil chain
+
+
 ## deploy script
 ```forge script script/DeployMomentumFactory.s.sol --rpc-url $ANVIL_RPC_URL --private-key $ANVIL_PRIVATE_KEY --broadcast```
