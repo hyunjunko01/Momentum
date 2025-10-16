@@ -30,7 +30,6 @@ contract Campaign is ReentrancyGuard {
         Successful, // Goal met by deadline
         Failed, // Goal not met by deadline
         PaidOut // Funds withdrawn by researcher
-
     }
 
     // --- State Variables ---
