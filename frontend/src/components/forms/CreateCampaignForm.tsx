@@ -4,12 +4,14 @@ import { useState, useEffect, type FC, type ChangeEvent } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, decodeEventLog } from 'viem';
 import { Loader, PartyPopper, ArrowRight, Copy, AlertCircle } from 'lucide-react';
-import Link from 'next/link';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
+import Link from 'next/link';
 
 // In your actual project, you would import this from its own file.
 // For this example, it's defined here for completeness.
 const momentumFactoryAbi = MomentumFactoryAbi;
+
+const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
 const InputField: FC<any> = ({ id, label, error, children, ...props }) => (
     <div>
@@ -99,7 +101,7 @@ export const CreateCampaignForm = () => {
         if (!validateForm()) return;
 
         writeContract({
-            address: '0x5FbDB2315678afecb367f032d93F642f64180aa3', // Replace with your deployed factory address
+            address: FACTORY_ADDRESS, // Replace with your deployed factory address
             abi: momentumFactoryAbi,
             functionName: 'createCampaign',
             args: [

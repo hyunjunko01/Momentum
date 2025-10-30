@@ -1,57 +1,5 @@
 export const MomentumFactoryAbi = [
     {
-        "type": "error",
-        "name": "MomentumFactory__CampaignCreationFailed",
-        "inputs": []
-    },
-    {
-        "type": "error",
-        "name": "MomentumFactory__InvalidDeadline",
-        "inputs": []
-    },
-    {
-        "type": "error",
-        "name": "MomentumFactory__InvalidFundingGoal",
-        "inputs": []
-    },
-    {
-        "type": "event",
-        "name": "CampaignCreated",
-        "inputs": [
-            {
-                "name": "researcher",
-                "type": "address",
-                "indexed": true,
-                "internalType": "address"
-            },
-            {
-                "name": "campaignAddress",
-                "type": "address",
-                "indexed": true,
-                "internalType": "address"
-            },
-            {
-                "name": "fundingGoal",
-                "type": "uint256",
-                "indexed": false,
-                "internalType": "uint256"
-            },
-            {
-                "name": "deadline",
-                "type": "uint256",
-                "indexed": false,
-                "internalType": "uint256"
-            },
-            {
-                "name": "title",
-                "type": "string",
-                "indexed": false,
-                "internalType": "string"
-            }
-        ],
-        "anonymous": false
-    },
-    {
         "type": "function",
         "name": "MAX_DEADLINE",
         "inputs": [],
@@ -396,5 +344,57 @@ export const MomentumFactoryAbi = [
             }
         ],
         "stateMutability": "view"
+    },
+    {
+        "type": "event",
+        "name": "CampaignCreated",
+        "inputs": [
+            {
+                "name": "researcher",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "campaignAddress",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "fundingGoal",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "deadline",
+                "type": "uint256",
+                "indexed": false,
+                "internalType": "uint256"
+            },
+            {
+                "name": "title",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
+        "type": "error",
+        "name": "MomentumFactory__CampaignCreationFailed",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "MomentumFactory__InvalidDeadline",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "MomentumFactory__InvalidFundingGoal",
+        "inputs": []
     }
 ] as const

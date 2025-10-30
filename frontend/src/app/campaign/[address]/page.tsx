@@ -7,7 +7,7 @@ import { Loader, AlertCircle, CheckCircle, XCircle, Hourglass } from 'lucide-rea
 import { FundCampaignForm } from '@/components/forms/FundCampaignForm';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 
-// Factory 컨트랙트 주소 - 실제 배포된 주소로 변경하세요
+// Factory 컨트랙트 주소
 const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as `0x${string}`;
 
 export default function CampaignDetailPage({ params }: { params: Promise<{ address: `0x${string}` }> }) {

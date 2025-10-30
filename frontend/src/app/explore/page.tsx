@@ -8,22 +8,27 @@ import { CampaignAbi } from '@/contracts/Campaign';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 import Link from 'next/link';
 
-// --- CONFIGURATION & TYPES ---
-
-const momentumFactoryAbi = MomentumFactoryAbi;
-const campaignAbi = CampaignAbi;
 const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as const;
 
 interface CampaignData {
     address: `0x${string}`;
+    title?: string;
     researcher: `0x${string}` | undefined;
     fundingGoal: bigint | undefined;
     totalFunded: bigint | undefined;
     deadline: bigint | undefined;
+    description?: string;
+    category?: string;
 }
 
-
-// --- UI COMPONENTS ---
+// ⭐ Metadata 타입 정의 (struct로 반환됨)
+interface CampaignMetadata {
+    title: string;
+    description: string;
+    category: string;
+    createdAt: bigint;
+    researcher: string;
+}
 
 const CampaignCardSkeleton = () => (
     <div className="bg-gray-800/50 rounded-lg shadow-lg border border-gray-800 animate-pulse">
@@ -42,7 +47,7 @@ const CampaignCardSkeleton = () => (
 );
 
 const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
-    const { address, researcher, fundingGoal, totalFunded, deadline } = campaign;
+    const { address, researcher, fundingGoal, totalFunded, deadline, title } = campaign;
 
     const goal = fundingGoal ?? BigInt(0);
     const raised = totalFunded ?? BigInt(0);
@@ -51,119 +56,149 @@ const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
     const daysLeft = deadline ? Math.max(0, Math.ceil((Number(deadline) * 1000 - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
 
     return (
-        <Link href={`/campaign/${address}`} className="block rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 border border-gray-800 hover:border-indigo-500/50">
-            <div className="bg-gray-800/50 h-full flex flex-col">
-                <div className="p-6 flex-grow">
-                    <h3 className="text-xl font-semibold text-white">Campaign: {address.slice(0, 6)}...{address.slice(-4)}</h3>
-                    <p className="mt-2 text-sm text-gray-400 font-medium">by {researcher ? `${researcher.slice(0, 6)}...${researcher.slice(-4)}` : "Loading..."}</p>
+        <Link
+            href={`/campaign/${address}`}
+            className="block rounded-xl shadow-xl overflow-hidden transform hover:scale-[1.02] transition-all duration-300 border-2 border-gray-700 hover:border-indigo-500 bg-gradient-to-br from-gray-800 to-gray-900"
+        >
+            <div className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-3 line-clamp-2 leading-tight min-h-[3.5rem]">
+                    {title || "Untitled Campaign"}
+                </h3>
+
+                <div className="flex items-center gap-2 mb-6 pb-6 border-b border-gray-700">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                        {researcher ? researcher.slice(2, 4).toUpperCase() : '??'}
+                    </div>
+                    <p className="text-gray-300 text-sm font-medium">
+                        {researcher ? `${researcher.slice(0, 6)}...${researcher.slice(-4)}` : "Loading..."}
+                    </p>
                 </div>
-                <div className="p-6 bg-gray-800">
-                    <div className="w-full bg-gray-700 rounded-full h-2.5">
-                        <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
+
+                <div className="mb-6">
+                    <div className="flex justify-between items-baseline mb-2">
+                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Progress</span>
+                        <span className="text-sm font-bold text-white">{progress}%</span>
                     </div>
-                    <div className="mt-3 flex justify-between items-center text-sm font-medium text-gray-300">
-                        <span>Raised: <span className="font-bold text-white">{formatEther(raised)} ETH</span></span>
-                        <span>Goal: <span className="font-bold text-white">{formatEther(goal)} ETH</span></span>
+                    <div className="w-full bg-gray-700 rounded-full h-2.5 shadow-inner">
+                        <div
+                            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-2.5 rounded-full transition-all duration-500 shadow-lg"
+                            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+                        ></div>
                     </div>
-                    <div className="mt-4 flex justify-between items-center text-xs text-gray-500">
-                        <div className="flex items-center"><Clock className="w-4 h-4 mr-1.5" /><span>{daysLeft} days left</span></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Raised</p>
+                        <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                            {formatEther(raised)} ETH
+                        </p>
                     </div>
+                    <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Goal</p>
+                        <p className="text-xl font-bold text-white">
+                            {formatEther(goal)} ETH
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg py-3 px-4">
+                    <Clock className="w-5 h-5 text-indigo-400" />
+                    <span className="text-sm font-semibold text-indigo-300">
+                        {daysLeft === 0 ? 'Last day!' : `${daysLeft} days remaining`}
+                    </span>
                 </div>
             </div>
         </Link>
     );
 };
 
-
-// --- Main Explore Page Component ---
 export default function ExplorePage() {
-    // 1. Get the list of all campaign addresses
-    // Use getAllDeployedCampaigns instead of getDeployedCampaigns (which requires offset and limit)
     const { data: campaignAddresses, isLoading: isLoadingAddresses, isError, error } = useReadContract({
         address: FACTORY_ADDRESS,
-        abi: momentumFactoryAbi,
+        abi: MomentumFactoryAbi,
         functionName: 'getAllDeployedCampaigns',
     });
 
-    // Debug logs
-    useEffect(() => {
-        console.log('=== Debug Info ===');
-        console.log('Factory Address:', FACTORY_ADDRESS);
-        console.log('Campaign Addresses:', campaignAddresses);
-        console.log('Is Loading Addresses:', isLoadingAddresses);
-        console.log('Is Error:', isError);
-        console.log('Error:', error);
-        console.log('Is Array:', Array.isArray(campaignAddresses));
-    }, [campaignAddresses, isLoadingAddresses, isError, error]);
-
-    // 2. Prepare the batch call for all campaign details
-    const campaignDetailContracts = useMemo(() => {
-        if (!campaignAddresses || !Array.isArray(campaignAddresses)) {
-            console.log('No campaign addresses or not array');
-            return [];
-        }
-
-        console.log('Preparing contracts for', campaignAddresses.length, 'campaigns');
-        return campaignAddresses.map(address => ({
-            address: address as `0x${string}`,
-            abi: campaignAbi,
-        }));
-    }, [campaignAddresses]);
-
-    // 3. Fetch details for ALL campaigns in a single batch call
     const { data: campaignDetails, isLoading: isLoadingDetails, error: detailsError } = useReadContracts({
-        contracts: campaignDetailContracts.flatMap(contract => [
-            { ...contract, functionName: 'i_fundingGoal' },
-            { ...contract, functionName: 'i_deadline' },
-            { ...contract, functionName: 's_totalFunded' },
-            { ...contract, functionName: 'i_researcher' },
+        contracts: campaignAddresses?.flatMap(address => [
+            {
+                address: FACTORY_ADDRESS,
+                abi: MomentumFactoryAbi,
+                functionName: 'getCampaignDetails',
+                args: [address]
+            },
+            {
+                address: FACTORY_ADDRESS,
+                abi: MomentumFactoryAbi,
+                functionName: 'getCampaignMetadata',
+                args: [address]
+            }
         ]),
         query: { enabled: !!campaignAddresses && Array.isArray(campaignAddresses) && campaignAddresses.length > 0 },
     });
 
     useEffect(() => {
-        console.log('Campaign Details:', campaignDetails);
-        console.log('Is Loading Details:', isLoadingDetails);
-        console.log('Details Error:', detailsError);
-    }, [campaignDetails, isLoadingDetails, detailsError]);
+        console.log('=== EXPLORE PAGE DEBUG ===');
+        console.log('1. Campaign Addresses:', campaignAddresses);
+        console.log('2. Is Loading Details:', isLoadingDetails);
+        console.log('3. Details Error:', detailsError);
+        console.log('4. Campaign Details (RAW):', campaignDetails);
 
-    // 4. Process the results in a structured, robust way using useMemo
+        if (campaignDetails) {
+            console.log('5. Details Length:', campaignDetails.length);
+            campaignDetails.forEach((detail, index) => {
+                console.log(`   Detail ${index}:`, {
+                    status: detail.status,
+                    result: detail.result,
+                    error: detail.error
+                });
+            });
+        }
+    }, [campaignAddresses, campaignDetails, isLoadingDetails, detailsError]);
+
     const campaignsData = useMemo((): CampaignData[] => {
         if (!campaignAddresses || !Array.isArray(campaignAddresses) || !campaignDetails) {
-            console.log('Cannot process campaigns - missing data');
+            console.log('❌ Early return: Missing data');
             return [];
         }
 
         const data: CampaignData[] = [];
-        const itemsPerCampaign = 4;
+        const itemsPerCampaign = 2;
 
         for (let i = 0; i < campaignAddresses.length; i++) {
             const address = campaignAddresses[i] as `0x${string}`;
             const detailsSlice = campaignDetails.slice(i * itemsPerCampaign, (i + 1) * itemsPerCampaign);
 
-            console.log(`Campaign ${i} (${address}):`, {
-                fundingGoal: detailsSlice[0],
-                deadline: detailsSlice[1],
-                totalFunded: detailsSlice[2],
-                researcher: detailsSlice[3],
-            });
+            console.log(`\n📍 Processing Campaign ${i} (${address}):`);
+            console.log('  Details Slice:', detailsSlice);
+
+            const details = detailsSlice[0]?.result as [string, bigint, bigint, number, bigint] | undefined;
+            // ⭐⭐⭐ 수정: metadata는 객체로 반환됩니다 ⭐⭐⭐
+            const metadata = detailsSlice[1]?.result as CampaignMetadata | undefined;
+
+            console.log('  ✓ Details Result:', details);
+            console.log('  ✓ Metadata Result:', metadata);
+            console.log('  ✓ Title from Metadata:', metadata?.title);
 
             data.push({
                 address,
-                fundingGoal: detailsSlice[0]?.result as bigint | undefined,
-                deadline: detailsSlice[1]?.result as bigint | undefined,
-                totalFunded: detailsSlice[2]?.result as bigint | undefined,
-                researcher: detailsSlice[3]?.result as `0x${string}` | undefined,
+                researcher: details?.[0] as `0x${string}` | undefined,
+                fundingGoal: details?.[1],
+                deadline: details?.[2],
+                totalFunded: details?.[4],
+                // ⭐⭐⭐ 수정: 객체 속성으로 접근 ⭐⭐⭐
+                title: metadata?.title,
+                description: metadata?.description,
+                category: metadata?.category,
             });
         }
 
-        console.log('Processed campaigns data:', data);
+        console.log('\n✅ Final Campaigns Data:', data);
         return data;
     }, [campaignAddresses, campaignDetails]);
 
-    // --- Render Logic ---
-
-    const isLoading = isLoadingAddresses || isLoadingDetails;
+    const isLoading = isLoadingAddresses || (campaignAddresses && campaignAddresses.length > 0 && isLoadingDetails);
 
     if (isError) {
         return (
@@ -185,14 +220,6 @@ export default function ExplorePage() {
                     <p className="mt-4 text-lg text-gray-400">Support the next generation of scientific discovery.</p>
                 </div>
 
-                {/* Debug info for user */}
-                <div className="mb-8 p-4 bg-gray-800 rounded-lg text-sm">
-                    <p className="text-gray-300">Debug Info:</p>
-                    <p className="text-gray-400">Loading: {isLoading ? 'Yes' : 'No'}</p>
-                    <p className="text-gray-400">Campaigns Found: {campaignAddresses ? (Array.isArray(campaignAddresses) ? campaignAddresses.length : 'Not an array') : 'None'}</p>
-                    <p className="text-gray-400">Processed: {campaignsData.length}</p>
-                </div>
-
                 {isLoading && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[...Array(6)].map((_, i) => <CampaignCardSkeleton key={i} />)}
@@ -200,7 +227,7 @@ export default function ExplorePage() {
                 )}
 
                 {!isLoading && campaignsData.length === 0 ? (
-                    <p className="text-center text-gray-500">No active campaigns found. Check console for debug info.</p>
+                    <p className="text-center text-gray-500">No active campaigns found.</p>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {campaignsData.map(campaign => (
