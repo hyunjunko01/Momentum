@@ -1,28 +1,44 @@
 "use client";
 
 import { use } from 'react';
-import { useReadContract } from 'wagmi';
+import { useReadContracts } from 'wagmi';
 import { formatEther } from 'viem';
 import { Loader, AlertCircle, CheckCircle, XCircle, Hourglass } from 'lucide-react';
 import { FundCampaignForm } from '@/components/forms/FundCampaignForm';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 
-// Factory 컨트랙트 주소
 const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as `0x${string}`;
 
+interface CampaignMetadata {
+    title: string;
+    description: string;
+    category: string;
+    createdAt: bigint;
+    researcher: string;
+}
+
 export default function CampaignDetailPage({ params }: { params: Promise<{ address: `0x${string}` }> }) {
-    // Next.js 15+ App Router에서는 params가 Promise로 전달됩니다
     const { address } = use(params);
 
-    // Factory 컨트랙트의 getCampaignDetails 함수 호출
-    const { data: campaignDetails, isLoading, isError } = useReadContract({
-        address: FACTORY_ADDRESS, // Factory 컨트랙트 주소
-        abi: MomentumFactoryAbi,
-        functionName: 'getCampaignDetails',
-        args: [address], // 캠페인 주소를 인자로 전달
+    const { data, isLoading, isError } = useReadContracts({
+        contracts: [
+            {
+                address: FACTORY_ADDRESS,
+                abi: MomentumFactoryAbi,
+                functionName: 'getCampaignDetails',
+                args: [address],
+            },
+            {
+                address: FACTORY_ADDRESS,
+                abi: MomentumFactoryAbi,
+                functionName: 'getCampaignMetadata',
+                args: [address],
+            }
+        ],
     });
 
-    // --- Render Logic ---
+    const campaignDetails = data?.[0]?.result as [string, bigint, bigint, number, bigint] | undefined;
+    const metadata = data?.[1]?.result as CampaignMetadata | undefined;
 
     if (isLoading) {
         return (
@@ -42,7 +58,6 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
         );
     }
 
-    // Destructure the returned data for easier use
     const [researcher, fundingGoal, deadline, state, totalFunded] = campaignDetails;
 
     const progress = Number((totalFunded * BigInt(100)) / fundingGoal);
@@ -54,29 +69,34 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
                 <div className="bg-gray-800/50 rounded-lg shadow-lg overflow-hidden border border-gray-800">
                     <div className="p-8">
-                        {/* In a real app, Title and Description would come from IPFS */}
-                        <h1 className="text-3xl font-bold text-white mb-2">Campaign: {address.slice(0, 8)}...</h1>
-                        <p className="text-sm text-gray-400 font-medium">by {researcher.slice(0, 6)}...{researcher.slice(-4)}</p>
+                        <h1 className="text-3xl font-bold text-white mb-2">
+                            {metadata?.title || `Campaign: ${address.slice(0, 8)}...`}
+                        </h1>
 
-                        <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-full ${
-                            // First, check if the state is Open
-                            state === 0 ? 'bg-blue-500/20 text-blue-300' :
-                                // If not Open, then check if it's Successful
-                                state === 1 ? 'bg-green-500/20 text-green-300' :
-                                    // Otherwise, it must be Failed or Paid Out
-                                    'bg-red-500/20 text-red-300'
-                            }`}>
-                            {/* Use the same nested logic for the icon */}
-                            {
-                                state === 0 ? <Hourglass className="w-4 h-4" /> :
+                        <p className="text-sm text-gray-400 font-medium mb-4">
+                            by {researcher.slice(0, 6)}...{researcher.slice(-4)}
+                        </p>
+
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className={`inline-flex items-center gap-2 px-3 py-1 text-sm font-medium rounded-full ${state === 0 ? 'bg-blue-500/20 text-blue-300' :
+                                    state === 1 ? 'bg-green-500/20 text-green-300' :
+                                        'bg-red-500/20 text-red-300'
+                                }`}>
+                                {state === 0 ? <Hourglass className="w-4 h-4" /> :
                                     state === 1 ? <CheckCircle className="w-4 h-4" /> :
-                                        <XCircle className="w-4 h-4" />
-                            }
-                            {stateText}
+                                        <XCircle className="w-4 h-4" />}
+                                {stateText}
+                            </div>
+
+                            {metadata?.category && (
+                                <span className="px-3 py-1 text-sm font-semibold bg-purple-500/20 text-purple-300 rounded-full border border-purple-500/30">
+                                    {metadata.category}
+                                </span>
+                            )}
                         </div>
 
-                        <p className="mt-6 text-base text-gray-300">
-                            This section would display the detailed campaign description fetched from IPFS.
+                        <p className="mt-6 text-base text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {metadata?.description || 'No description available for this campaign.'}
                         </p>
                     </div>
 
@@ -103,9 +123,9 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
                             </div>
                         </div>
                     </div>
+
                     <div className="p-8 border-t border-gray-800">
                         <h2 className="text-xl font-semibold mb-4">Support This Research</h2>
-                        {/* We pass the campaign's address as a prop */}
                         <FundCampaignForm campaignAddress={address} />
                     </div>
                 </div>

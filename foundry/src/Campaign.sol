@@ -22,6 +22,7 @@ contract Campaign is ReentrancyGuard {
     error Campaign__AlreadyFinalized();
     error Campaign__MustSendMoreThanZero();
     error Campaign__NoFundsToRefund();
+    error Campaign__NotInCorrectStateForUpdate();
 
     // --- Enums ---
     // Defines the lifecycle stages of the campaign.
@@ -30,6 +31,7 @@ contract Campaign is ReentrancyGuard {
         Successful, // Goal met by deadline
         Failed, // Goal not met by deadline
         PaidOut // Funds withdrawn by researcher
+
     }
 
     // --- State Variables ---
@@ -43,11 +45,14 @@ contract Campaign is ReentrancyGuard {
     // Mapping from a backer's address to their contribution amount.
     mapping(address => uint256) public s_backers;
 
+    string[] public s_researchUpdates;
+
     // --- Events ---
     event CampaignFunded(address indexed funder, uint256 amount);
     event CampaignWithdrawn(address indexed researcher, uint256 amount);
     event CampaignFinalized(CampaignState finalState);
     event Refunded(address indexed backer, uint256 amount);
+    event ResearchUpdateSubmitted(address indexed researcher, string ipfsHash);
 
     // --- Modifiers ---
     modifier onlyResearcher() {
@@ -158,5 +163,23 @@ contract Campaign is ReentrancyGuard {
             revert Campaign__TransferFailed();
         }
         emit Refunded(msg.sender, fundedAmount);
+    }
+
+    function submitResearchUpdate(string memory _ipfsHash) external onlyResearcher {
+        // when the campaign is in Failed state, updates are not allowed
+        if (s_campaignState == CampaignState.Failed) {
+            revert Campaign__NotInCorrectStateForUpdate();
+        }
+
+        s_researchUpdates.push(_ipfsHash);
+
+        emit ResearchUpdateSubmitted(msg.sender, _ipfsHash);
+    }
+
+    /**
+     * @notice returns the list of research updates
+     */
+    function getResearchUpdates() public view returns (string[] memory) {
+        return s_researchUpdates;
     }
 }

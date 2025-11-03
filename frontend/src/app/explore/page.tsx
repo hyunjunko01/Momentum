@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { formatEther } from 'viem';
-import { Loader, AlertCircle, Clock } from 'lucide-react';
-import { CampaignAbi } from '@/contracts/Campaign';
+import { AlertCircle, Clock } from 'lucide-react';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 import Link from 'next/link';
 
@@ -21,7 +20,6 @@ interface CampaignData {
     category?: string;
 }
 
-// ⭐ Metadata 타입 정의 (struct로 반환됨)
 interface CampaignMetadata {
     title: string;
     description: string;
@@ -30,6 +28,7 @@ interface CampaignMetadata {
     researcher: string;
 }
 
+// when data is loading, show skeleton cards
 const CampaignCardSkeleton = () => (
     <div className="bg-gray-800/50 rounded-lg shadow-lg border border-gray-800 animate-pulse">
         <div className="p-6">
@@ -114,13 +113,17 @@ const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
 };
 
 export default function ExplorePage() {
+    // step 1: read all campaign addresses from factory
+    // react hook named useReadContracts read the data and load the states.
     const { data: campaignAddresses, isLoading: isLoadingAddresses, isError, error } = useReadContract({
         address: FACTORY_ADDRESS,
         abi: MomentumFactoryAbi,
         functionName: 'getAllDeployedCampaigns',
     });
 
-    const { data: campaignDetails, isLoading: isLoadingDetails, error: detailsError } = useReadContracts({
+    // step 2: for each address, read campaign details and metadata
+    const { data: campaignDetails, isLoading: isLoadingDetails } = useReadContracts({
+        // we should use flatmap to create 1nd dimensional array of contract read configs
         contracts: campaignAddresses?.flatMap(address => [
             {
                 address: FACTORY_ADDRESS,
@@ -135,51 +138,26 @@ export default function ExplorePage() {
                 args: [address]
             }
         ]),
+        // safety check to avoid making calls with invalid data
         query: { enabled: !!campaignAddresses && Array.isArray(campaignAddresses) && campaignAddresses.length > 0 },
     });
 
-    useEffect(() => {
-        console.log('=== EXPLORE PAGE DEBUG ===');
-        console.log('1. Campaign Addresses:', campaignAddresses);
-        console.log('2. Is Loading Details:', isLoadingDetails);
-        console.log('3. Details Error:', detailsError);
-        console.log('4. Campaign Details (RAW):', campaignDetails);
-
-        if (campaignDetails) {
-            console.log('5. Details Length:', campaignDetails.length);
-            campaignDetails.forEach((detail, index) => {
-                console.log(`   Detail ${index}:`, {
-                    status: detail.status,
-                    result: detail.result,
-                    error: detail.error
-                });
-            });
-        }
-    }, [campaignAddresses, campaignDetails, isLoadingDetails, detailsError]);
-
+    // 3단계: make a memoized list of campaign data
     const campaignsData = useMemo((): CampaignData[] => {
         if (!campaignAddresses || !Array.isArray(campaignAddresses) || !campaignDetails) {
-            console.log('❌ Early return: Missing data');
             return [];
         }
 
         const data: CampaignData[] = [];
-        const itemsPerCampaign = 2;
+        const itemsPerCampaign = 2; // details + metadata
 
+        // extract details and metadata for each campaign
         for (let i = 0; i < campaignAddresses.length; i++) {
             const address = campaignAddresses[i] as `0x${string}`;
             const detailsSlice = campaignDetails.slice(i * itemsPerCampaign, (i + 1) * itemsPerCampaign);
 
-            console.log(`\n📍 Processing Campaign ${i} (${address}):`);
-            console.log('  Details Slice:', detailsSlice);
-
             const details = detailsSlice[0]?.result as [string, bigint, bigint, number, bigint] | undefined;
-            // ⭐⭐⭐ 수정: metadata는 객체로 반환됩니다 ⭐⭐⭐
             const metadata = detailsSlice[1]?.result as CampaignMetadata | undefined;
-
-            console.log('  ✓ Details Result:', details);
-            console.log('  ✓ Metadata Result:', metadata);
-            console.log('  ✓ Title from Metadata:', metadata?.title);
 
             data.push({
                 address,
@@ -187,19 +165,18 @@ export default function ExplorePage() {
                 fundingGoal: details?.[1],
                 deadline: details?.[2],
                 totalFunded: details?.[4],
-                // ⭐⭐⭐ 수정: 객체 속성으로 접근 ⭐⭐⭐
                 title: metadata?.title,
                 description: metadata?.description,
                 category: metadata?.category,
             });
         }
 
-        console.log('\n✅ Final Campaigns Data:', data);
         return data;
     }, [campaignAddresses, campaignDetails]);
 
     const isLoading = isLoadingAddresses || (campaignAddresses && campaignAddresses.length > 0 && isLoadingDetails);
 
+    // 에러 상태
     if (isError) {
         return (
             <div className="min-h-screen flex items-center justify-center text-red-400">
@@ -212,6 +189,7 @@ export default function ExplorePage() {
         );
     }
 
+    // 4단계: UI 렌더링
     return (
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -220,12 +198,14 @@ export default function ExplorePage() {
                     <p className="mt-4 text-lg text-gray-400">Support the next generation of scientific discovery.</p>
                 </div>
 
+                {/* 로딩 중: 스켈레톤 표시 */}
                 {isLoading && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[...Array(6)].map((_, i) => <CampaignCardSkeleton key={i} />)}
                     </div>
                 )}
 
+                {/* 로딩 완료 후 렌더링 */}
                 {!isLoading && campaignsData.length === 0 ? (
                     <p className="text-center text-gray-500">No active campaigns found.</p>
                 ) : (
