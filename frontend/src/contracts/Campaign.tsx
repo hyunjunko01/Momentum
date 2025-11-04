@@ -43,6 +43,19 @@ export const CampaignAbi = [
     },
     {
         "type": "function",
+        "name": "getResearchUpdates",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "",
+                "type": "string[]",
+                "internalType": "string[]"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "i_deadline",
         "inputs": [],
         "outputs": [
@@ -114,6 +127,25 @@ export const CampaignAbi = [
     },
     {
         "type": "function",
+        "name": "s_researchUpdates",
+        "inputs": [
+            {
+                "name": "",
+                "type": "uint256",
+                "internalType": "uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "stateMutability": "view"
+    },
+    {
+        "type": "function",
         "name": "s_totalFunded",
         "inputs": [],
         "outputs": [
@@ -124,6 +156,19 @@ export const CampaignAbi = [
             }
         ],
         "stateMutability": "view"
+    },
+    {
+        "type": "function",
+        "name": "submitResearchUpdate",
+        "inputs": [
+            {
+                "name": "_ipfsHash",
+                "type": "string",
+                "internalType": "string"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
     },
     {
         "type": "function",
@@ -203,6 +248,25 @@ export const CampaignAbi = [
         "anonymous": false
     },
     {
+        "type": "event",
+        "name": "ResearchUpdateSubmitted",
+        "inputs": [
+            {
+                "name": "researcher",
+                "type": "address",
+                "indexed": true,
+                "internalType": "address"
+            },
+            {
+                "name": "ipfsHash",
+                "type": "string",
+                "indexed": false,
+                "internalType": "string"
+            }
+        ],
+        "anonymous": false
+    },
+    {
         "type": "error",
         "name": "Campaign__AlreadyFinalized",
         "inputs": []
@@ -225,6 +289,11 @@ export const CampaignAbi = [
     {
         "type": "error",
         "name": "Campaign__NoFundsToRefund",
+        "inputs": []
+    },
+    {
+        "type": "error",
+        "name": "Campaign__NotInCorrectStateForUpdate",
         "inputs": []
     },
     {

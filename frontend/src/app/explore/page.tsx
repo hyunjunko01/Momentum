@@ -142,7 +142,7 @@ export default function ExplorePage() {
         query: { enabled: !!campaignAddresses && Array.isArray(campaignAddresses) && campaignAddresses.length > 0 },
     });
 
-    // 3단계: make a memoized list of campaign data
+    // step3: make a memoized list of campaign data
     const campaignsData = useMemo((): CampaignData[] => {
         if (!campaignAddresses || !Array.isArray(campaignAddresses) || !campaignDetails) {
             return [];
@@ -172,11 +172,11 @@ export default function ExplorePage() {
         }
 
         return data;
-    }, [campaignAddresses, campaignDetails]);
+    }, [campaignAddresses, campaignDetails]); // If either changes, recompute
 
     const isLoading = isLoadingAddresses || (campaignAddresses && campaignAddresses.length > 0 && isLoadingDetails);
 
-    // 에러 상태
+    // error handling
     if (isError) {
         return (
             <div className="min-h-screen flex items-center justify-center text-red-400">
@@ -189,7 +189,7 @@ export default function ExplorePage() {
         );
     }
 
-    // 4단계: UI 렌더링
+    // step4: render the campaigns
     return (
         <div className="min-h-screen bg-gray-900 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -198,14 +198,14 @@ export default function ExplorePage() {
                     <p className="mt-4 text-lg text-gray-400">Support the next generation of scientific discovery.</p>
                 </div>
 
-                {/* 로딩 중: 스켈레톤 표시 */}
+                {/* loding => skeleton code*/}
                 {isLoading && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[...Array(6)].map((_, i) => <CampaignCardSkeleton key={i} />)}
                     </div>
                 )}
 
-                {/* 로딩 완료 후 렌더링 */}
+                {/* after loading, render the campaign */}
                 {!isLoading && campaignsData.length === 0 ? (
                     <p className="text-center text-gray-500">No active campaigns found.</p>
                 ) : (

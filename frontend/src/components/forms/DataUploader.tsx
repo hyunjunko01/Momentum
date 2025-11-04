@@ -5,41 +5,41 @@ import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 
 type Status = 'idle' | 'uploading' | 'success' | 'error';
 
-export const DataUploader = () => {
+interface DataUploaderProps {
+    onUploadSuccess: (ipfsHash: string) => void;
+}
+
+export const DataUploader = ({ onUploadSuccess }: DataUploaderProps) => {
     const [file, setFile] = useState<File | null>(null);
     const [status, setStatus] = useState<Status>('idle');
-    const [ipfsHash, setIpfsHash] = useState<string>('');
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             setFile(e.target.files[0]);
             setStatus('idle');
-            setIpfsHash('');
         }
     };
 
     const handleSubmit = async () => {
         if (!file) return;
-
         setStatus('uploading');
 
         const formData = new FormData();
         formData.append('file', file);
 
         try {
-            // 4단계에서 만든 우리 API 라우트를 호출합니다.
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData,
             });
 
-            if (!response.ok) {
-                throw new Error('Upload failed');
-            }
+            if (!response.ok) throw new Error('Upload failed');
 
             const data = await response.json();
-            setIpfsHash(data.ipfsHash); // IPFS 해시(CID)를 상태에 저장
             setStatus('success');
+
+            // 2. CALL THE PARENT'S FUNCTION WITH THE HASH
+            onUploadSuccess(data.ipfsHash);
 
         } catch (error) {
             console.error(error);
@@ -74,14 +74,9 @@ export const DataUploader = () => {
             {status === 'success' && (
                 <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-300">
                     <p className="font-semibold">File Uploaded!</p>
-                    <p className="truncate mt-1">IPFS Hash (CID): {ipfsHash}</p>
                 </div>
             )}
             {status === 'error' && <p className="mt-2 text-sm text-red-400">Error uploading file. Please try again.</p>}
-
-            {/* 이제 ipfsHash를 스마트 컨트랙트에 제출할 수 있습니다.
-        예: <SubmitHashButton ipfsHash={ipfsHash} />
-      */}
         </div>
     );
 };
