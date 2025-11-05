@@ -5,7 +5,8 @@ import { useReadContracts, useAccount } from 'wagmi';
 import { formatEther } from 'viem';
 import { Loader, AlertCircle, ArrowLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { ResearchUpdateForm } from '@/components/forms/ResearchUpdateFrom';
+import { ResearchUpdateForm } from '@/components/forms/ResearchUpdateForm';
+import { WithdrawFunds } from '@/components/functions/WithdrawFunds';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 
 const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as `0x${string}`;
@@ -139,7 +140,7 @@ export default function ResearcherDashboardPage({ params }: { params: Promise<{ 
     const { address: connectedAddress } = useAccount();
 
     // Fetch campaign details and metadata
-    const { data, isLoading: isLoadingMain, isError: isMainError } = useReadContracts({
+    const { data, isLoading: isLoadingMain, isError: isMainError, refetch } = useReadContracts({
         contracts: [
             { address: FACTORY_ADDRESS, abi: MomentumFactoryAbi, functionName: 'getCampaignDetails', args: [address] },
             { address: FACTORY_ADDRESS, abi: MomentumFactoryAbi, functionName: 'getCampaignMetadata', args: [address] },
@@ -186,7 +187,7 @@ export default function ResearcherDashboardPage({ params }: { params: Promise<{ 
 
                     <ResearchUpdateForm campaignAddress={address} />
 
-
+                    <WithdrawFunds campaignAddress={address} onWithdrawn={refetch} />
 
                 </div>
             </div>

@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { ArrowRight, Microscope, Users, Shield, Sparkles, ChevronRight, TrendingUp } from 'lucide-react';
 
+
+// dummy project data
 const projects = [
   {
     id: 1,
@@ -40,6 +42,7 @@ const projects = [
   }
 ];
 
+// dummy stats data
 const stats = [
   { label: 'Funded Projects', value: '1,247+', icon: TrendingUp },
   { label: 'Total Researchers', value: '3,856', icon: Users },
