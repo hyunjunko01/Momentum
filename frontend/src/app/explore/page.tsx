@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import { useReadContract, useReadContracts } from 'wagmi';
+import { useReadContract, useReadContracts, useBlockNumber, useBlock } from 'wagmi';
 import { formatEther } from 'viem';
 import { AlertCircle, Clock } from 'lucide-react';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
@@ -28,6 +28,24 @@ interface CampaignMetadata {
     researcher: string;
 }
 
+// Utility function to calculate days left in D-day format
+const calculateDaysLeftText = (deadline: bigint | undefined, currentTimestamp: bigint): string => {
+    if (!deadline) return 'No deadline';
+
+    const secondsLeft = Number(deadline) - Number(currentTimestamp);
+    const days = Math.ceil(Math.abs(secondsLeft) / (60 * 60 * 24));
+
+    if (secondsLeft > 86400) { // More than 1 day left
+        return `D-${days}`;
+    } else if (secondsLeft > 0) { // Less than 1 day but not passed
+        return 'D-Day';
+    } else if (secondsLeft === 0) {
+        return 'D-Day';
+    } else { // Deadline passed
+        return `D+${days}`;
+    }
+};
+
 // when data is loading, show skeleton cards
 const CampaignCardSkeleton = () => (
     <div className="bg-gray-800/50 rounded-lg shadow-lg border border-gray-800 animate-pulse">
@@ -45,14 +63,15 @@ const CampaignCardSkeleton = () => (
     </div>
 );
 
-const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
+const CampaignCard = ({ campaign, currentTimestamp }: { campaign: CampaignData; currentTimestamp: bigint }) => {
     const { address, researcher, fundingGoal, totalFunded, deadline, title } = campaign;
 
     const goal = fundingGoal ?? BigInt(0);
     const raised = totalFunded ?? BigInt(0);
 
     const progress = goal > 0 ? Number((raised * BigInt(100)) / goal) : 0;
-    const daysLeft = deadline ? Math.max(0, Math.ceil((Number(deadline) * 1000 - Date.now()) / (1000 * 60 * 60 * 24))) : 0;
+    const daysLeftText = calculateDaysLeftText(deadline, currentTimestamp);
+    const deadlineHasPassed = deadline ? currentTimestamp >= deadline : false;
 
     return (
         <Link
@@ -101,10 +120,13 @@ const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center justify-center gap-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg py-3 px-4">
-                    <Clock className="w-5 h-5 text-indigo-400" />
-                    <span className="text-sm font-semibold text-indigo-300">
-                        {daysLeft === 0 ? 'Last day!' : `${daysLeft} days remaining`}
+                <div className={`flex items-center justify-center gap-2 rounded-lg py-3 px-4 ${deadlineHasPassed
+                    ? 'bg-green-500/10 border border-green-500/30'
+                    : 'bg-indigo-500/10 border border-indigo-500/30'
+                    }`}>
+                    <Clock className={`w-5 h-5 ${deadlineHasPassed ? 'text-green-400' : 'text-indigo-400'}`} />
+                    <span className={`text-sm font-semibold ${deadlineHasPassed ? 'text-green-300' : 'text-indigo-300'}`}>
+                        {daysLeftText}
                     </span>
                 </div>
             </div>
@@ -113,6 +135,10 @@ const CampaignCard = ({ campaign }: { campaign: CampaignData }) => {
 };
 
 export default function ExplorePage() {
+    // Get current block number and block data for blockchain timestamp
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+    const { data: block } = useBlock({ blockNumber });
+
     // step 1: read all campaign addresses from factory
     // react hook named useReadContracts read the data and load the states.
     const { data: campaignAddresses, isLoading: isLoadingAddresses, isError, error } = useReadContract({
@@ -174,7 +200,7 @@ export default function ExplorePage() {
         return data;
     }, [campaignAddresses, campaignDetails]); // If either changes, recompute
 
-    const isLoading = isLoadingAddresses || (campaignAddresses && campaignAddresses.length > 0 && isLoadingDetails);
+    const isLoading = isLoadingAddresses || (campaignAddresses && campaignAddresses.length > 0 && isLoadingDetails) || !block;
 
     // error handling
     if (isError) {
@@ -189,9 +215,12 @@ export default function ExplorePage() {
         );
     }
 
+    // Get current blockchain timestamp
+    const currentTimestamp = block?.timestamp ?? BigInt(Math.floor(Date.now() / 1000));
+
     // step4: render the campaigns
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-gray-900 text-white pt-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
                 <div className="text-center mb-12">
                     <h1 className="text-4xl font-extrabold tracking-tight">Explore Campaigns</h1>
@@ -211,7 +240,11 @@ export default function ExplorePage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {campaignsData.map(campaign => (
-                            <CampaignCard key={campaign.address} campaign={campaign} />
+                            <CampaignCard
+                                key={campaign.address}
+                                campaign={campaign}
+                                currentTimestamp={currentTimestamp}
+                            />
                         ))}
                     </div>
                 )}

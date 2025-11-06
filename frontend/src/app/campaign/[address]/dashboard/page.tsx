@@ -187,7 +187,9 @@ export default function ResearcherDashboardPage({ params }: { params: Promise<{ 
 
                     <ResearchUpdateForm campaignAddress={address} />
 
-                    <WithdrawFunds campaignAddress={address} onWithdrawn={refetch} />
+                    {state === 1 && (
+                        <WithdrawFunds campaignAddress={address} onWithdrawn={refetch} />
+                    )}
 
                 </div>
             </div>

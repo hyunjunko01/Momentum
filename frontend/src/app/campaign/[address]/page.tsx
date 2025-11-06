@@ -1,11 +1,14 @@
 "use client";
 
 import { use } from 'react';
-import { useReadContracts, useAccount, useReadContract } from 'wagmi';
+import { useReadContracts, useAccount, useReadContract, useBlockNumber, useBlock } from 'wagmi';
 import { formatEther } from 'viem';
 import { Loader, AlertCircle, FileText, ArrowUpRight, Settings, Hourglass, XCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { FundCampaignForm } from '@/components/forms/FundCampaignForm';
+import { FinalizeCampaign } from '@/components/functions/FinalizeCampaign';
+import { ClaimRefund } from '@/components/functions/ClaimRefund';
+import { DebugTimeTravel } from '../../../components/functions/DebugTimeTravel';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 import { CampaignAbi } from '@/contracts/Campaign';
 
@@ -40,8 +43,20 @@ const calculateProgress = (totalFunded: bigint, fundingGoal: bigint): number => 
     return Number((totalFunded * BigInt(100)) / fundingGoal);
 };
 
-const calculateDaysLeft = (deadline: bigint): number => {
-    return Math.max(0, Math.ceil((Number(deadline) * 1000 - Date.now()) / (1000 * 60 * 60 * 24)));
+const calculateDaysLeft = (deadline: bigint, currentTimestamp: bigint): string => {
+    const secondsLeft = Number(deadline) - Number(currentTimestamp);
+    const days = Math.ceil(Math.abs(secondsLeft) / (60 * 60 * 24));
+
+    if (secondsLeft > 0) {
+        // Deadline has not passed yet
+        return `D-${days}`;
+    } else if (secondsLeft < 0) {
+        // Deadline has passed
+        return `D+${days}`;
+    } else {
+        // Exactly on deadline
+        return 'D-Day';
+    }
 };
 
 // --- Component Sections ---
@@ -104,11 +119,13 @@ interface FundingProgressProps {
     totalFunded: bigint;
     fundingGoal: bigint;
     deadline: bigint;
+    currentTimestamp: bigint;
 }
 
-function FundingProgress({ totalFunded, fundingGoal, deadline }: FundingProgressProps) {
+function FundingProgress({ totalFunded, fundingGoal, deadline, currentTimestamp }: FundingProgressProps) {
     const progress = calculateProgress(totalFunded, fundingGoal);
-    const daysLeft = calculateDaysLeft(deadline);
+    const daysLeftText = calculateDaysLeft(deadline, currentTimestamp);
+    const deadlineHasPassed = currentTimestamp >= deadline;
 
     return (
         <div className="p-8 border-t border-gray-800">
@@ -126,9 +143,13 @@ function FundingProgress({ totalFunded, fundingGoal, deadline }: FundingProgress
                 <span className="text-gray-400">Goal: {formatEther(fundingGoal)} ETH</span>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-4 text-center">
-                <div className="bg-gray-800 p-4 rounded-lg">
-                    <p className="text-2xl font-bold">{daysLeft}</p>
-                    <p className="text-sm text-gray-400">Days Left</p>
+                <div className={`bg-gray-800 p-4 rounded-lg ${deadlineHasPassed ? 'border border-green-500/30' : ''}`}>
+                    <p className={`text-2xl font-bold ${deadlineHasPassed ? 'text-green-400' : 'text-white'}`}>
+                        {daysLeftText}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                        {deadlineHasPassed ? 'Deadline Passed' : 'Days Left'}
+                    </p>
                 </div>
                 <div className="bg-gray-800 p-4 rounded-lg">
                     <p className="text-2xl font-bold">...</p>
@@ -223,8 +244,16 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
     const { address } = use(params);
     const { address: connectedAddress } = useAccount();
 
+    // Get current block number to trigger block data fetch
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+
+    // Get current block to extract timestamp
+    const { data: block } = useBlock({
+        blockNumber,
+    });
+
     // Fetch campaign details and metadata
-    const { data, isLoading: isLoadingMain, isError: isMainError } = useReadContracts({
+    const { data, isLoading: isLoadingMain, isError: isMainError, refetch } = useReadContracts({
         contracts: [
             { address: FACTORY_ADDRESS, abi: MomentumFactoryAbi, functionName: 'getCampaignDetails', args: [address] },
             { address: FACTORY_ADDRESS, abi: MomentumFactoryAbi, functionName: 'getCampaignMetadata', args: [address] },
@@ -244,13 +273,32 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
     const metadata = data?.[1]?.result as CampaignMetadata | undefined;
 
     // Loading and error states
-    if (isLoadingMain) return <LoadingState />;
+    if (isLoadingMain || !block) return <LoadingState />;
     if (isMainError || !campaignDetails) return <ErrorState />;
 
     // Extract campaign data
     const [researcher, fundingGoal, deadline, state, totalFunded] = campaignDetails;
     const isOwner = !!(connectedAddress && researcher &&
         connectedAddress.toLowerCase() === researcher.toLowerCase());
+
+    // Use blockchain timestamp instead of Date.now()
+    const currentTimestamp = block.timestamp;
+    const deadlineHasPassed = currentTimestamp >= deadline;
+    const goalAchieved = totalFunded >= fundingGoal;
+
+    // Debug info
+    console.log('Debug Info:', {
+        deadline: Number(deadline),
+        deadlineDate: new Date(Number(deadline) * 1000),
+        currentTimestamp: Number(currentTimestamp),
+        currentTimestampDate: new Date(Number(currentTimestamp) * 1000),
+        deadlineHasPassed,
+        goalAchieved,
+        totalFunded: formatEther(totalFunded),
+        fundingGoal: formatEther(fundingGoal),
+        state,
+        stateText: CAMPAIGN_STATE_TEXT[state]
+    });
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
@@ -269,6 +317,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
                         totalFunded={totalFunded}
                         fundingGoal={fundingGoal}
                         deadline={deadline}
+                        currentTimestamp={currentTimestamp}
                     />
 
                     <ResearchUpdates
@@ -276,9 +325,28 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ addre
                         isLoading={isLoadingUpdates}
                     />
 
-                    {state === CampaignState.Open && (
+                    {state === CampaignState.Open && !deadlineHasPassed && (
                         <FundingSection campaignAddress={address} />
                     )}
+
+                    {state === CampaignState.Open && deadlineHasPassed && (
+                        <FinalizeCampaign
+                            campaignAddress={address}
+                            onFinalized={() => refetch()}
+                        />
+                    )}
+
+                    {state === CampaignState.Failed && (
+                        <div className="p-8 border-t border-gray-800">
+                            <ClaimRefund
+                                campaignAddress={address}
+                                userAddress={connectedAddress}
+                                onRefunded={() => refetch()}
+                            />
+                        </div>
+                    )}
+
+                    <DebugTimeTravel />
 
                 </div>
             </div>
