@@ -11,7 +11,7 @@ import Link from 'next/link';
 // For this example, it's defined here for completeness.
 const momentumFactoryAbi = MomentumFactoryAbi;
 
-const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a'
 
 const InputField: FC<any> = ({ id, label, error, children, ...props }) => (
     <div>
