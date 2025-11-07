@@ -28,7 +28,7 @@ Momentum is our answer. It's a Web3 platform that allows anyone, anywhere, to di
 ## 🔗 Live Demo
 Check out the live MVP deployed on the Sepolia testnet!
 
-➡️ momentum-desci.vercel.app ⬅️
+➡️ [momentum-desci.vercel.app](https://momentum-one-phi.vercel.app/) ⬅️
 
 (Note: You will need a Web3 wallet like MetaMask and some Sepolia ETH to interact with the dApp.)
 
