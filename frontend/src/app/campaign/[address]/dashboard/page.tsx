@@ -9,7 +9,7 @@ import { ResearchUpdateForm } from '@/components/forms/ResearchUpdateForm';
 import { WithdrawFunds } from '@/components/functions/WithdrawFunds';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 
-const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3' as `0x${string}`;
+const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a' as `0x${string}`;
 
 // --- Type Definitions ---
 interface CampaignMetadata {
