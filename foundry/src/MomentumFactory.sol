@@ -32,10 +32,11 @@ contract MomentumFactory {
     // Mapping to check if an address is a valid campaign
     mapping(address => bool) public s_isValidCampaign;
 
-    // Campaign metadata (optional but recommended)
+    // Campaign metadata
     struct CampaignMetadata {
         string title;
         string description;
+        string imageURI;
         string category;
         uint256 createdAt;
         address researcher;
@@ -62,6 +63,7 @@ contract MomentumFactory {
     function createCampaign(
         uint256 _fundingGoal,
         uint256 _deadlineInSeconds,
+        string memory _campaignImageURI,
         string memory _title,
         string memory _description,
         string memory _category
@@ -75,7 +77,7 @@ contract MomentumFactory {
         }
 
         // Deploy new campaign
-        Campaign newCampaign = new Campaign(msg.sender, _fundingGoal, _deadlineInSeconds);
+        Campaign newCampaign = new Campaign(msg.sender, _fundingGoal, _deadlineInSeconds, _campaignImageURI);
         campaignAddress = address(newCampaign);
 
         // Verify deployment succeeded
@@ -92,19 +94,13 @@ contract MomentumFactory {
         s_campaignMetadata[campaignAddress] = CampaignMetadata({
             title: _title,
             description: _description,
+            imageURI: _campaignImageURI,
             category: _category,
             createdAt: block.timestamp,
             researcher: msg.sender
         });
 
         emit CampaignCreated(msg.sender, campaignAddress, _fundingGoal, block.timestamp + _deadlineInSeconds, _title);
-    }
-
-    /**
-     * @notice Simplified version without metadata (backward compatible)
-     */
-    function createCampaign(uint256 _fundingGoal, uint256 _deadlineInSeconds) public returns (address) {
-        return createCampaign(_fundingGoal, _deadlineInSeconds, "", "", "");
     }
 
     /**

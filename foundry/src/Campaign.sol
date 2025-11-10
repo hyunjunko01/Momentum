@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.18;
 
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
@@ -9,7 +12,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  * @notice A robust and secure contract for a single research campaign,
  * implementing a clear state machine and best practices.
  */
-contract Campaign is ReentrancyGuard {
+contract Campaign is ReentrancyGuard, ERC721 {
     // --- Custom Errors ---
     // Custom errors are more gas-efficient than require statements with strings.
     error Campaign__NotResearcher();
@@ -31,6 +34,7 @@ contract Campaign is ReentrancyGuard {
         Successful, // Goal met by deadline
         Failed, // Goal not met by deadline
         PaidOut // Funds withdrawn by researcher
+
     }
 
     // --- State Variables ---
@@ -41,8 +45,14 @@ contract Campaign is ReentrancyGuard {
     CampaignState public s_campaignState;
     uint256 public s_totalFunded;
 
+    // --- NFT Related ---
+    uint256 private s_tokenCounter;
+    string private s_campaignMetadataURI;
+
     // Mapping from a backer's address to their contribution amount.
     mapping(address => uint256) public s_backers;
+    mapping(uint256 => string) private s_tokenIdToUri;
+    mapping(address => bool) public s_hasClaimedNFT;
 
     string[] public s_researchUpdates;
 
@@ -62,10 +72,14 @@ contract Campaign is ReentrancyGuard {
     }
 
     // --- Constructor ---
-    constructor(address _researcher, uint256 _fundingGoal, uint256 _deadlineInSeconds) {
+    constructor(address _researcher, uint256 _fundingGoal, uint256 _deadlineInSeconds, string memory _campaignImageURI)
+        ERC721("ResearchUpdateNFT", "RUNFT")
+    {
+        s_tokenCounter = 0;
         i_researcher = _researcher;
         i_fundingGoal = _fundingGoal;
         i_deadline = block.timestamp + _deadlineInSeconds;
+        s_campaignMetadataURI = _campaignImageURI;
         s_campaignState = CampaignState.Open;
     }
 
@@ -90,6 +104,7 @@ contract Campaign is ReentrancyGuard {
 
         s_backers[msg.sender] += msg.value;
         s_totalFunded += msg.value;
+        s_hasClaimedNFT[msg.sender] = false;
         emit CampaignFunded(msg.sender, msg.value);
     }
 
@@ -162,6 +177,24 @@ contract Campaign is ReentrancyGuard {
             revert Campaign__TransferFailed();
         }
         emit Refunded(msg.sender, fundedAmount);
+    }
+
+    function claimNft() external nonReentrant {
+        if (s_campaignState != CampaignState.Successful) {
+            revert Campaign__NotInSuccessfulState();
+        }
+
+        if (s_backers[msg.sender] == 0) {
+            revert Campaign__NoFundsToRefund();
+        }
+        s_tokenIdToUri[s_tokenCounter] = s_campaignMetadataURI;
+        _safeMint(msg.sender, s_tokenCounter);
+        s_tokenCounter++;
+        s_hasClaimedNFT[msg.sender] = true;
+    }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        return s_tokenIdToUri[tokenId];
     }
 
     function submitResearchUpdate(string memory _ipfsHash) external onlyResearcher {
