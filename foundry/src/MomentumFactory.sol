@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.18;
 
 import {Campaign} from "./Campaign.sol";
@@ -23,20 +24,18 @@ contract MomentumFactory {
 
     // --- State Variables ---
 
-    // All deployed campaigns
-    address[] private s_deployedCampaigns;
+    // Arrays
+    address[] private s_deployedCampaigns; // All deployed campaigns
 
-    // Mapping from researcher address to their campaign addresses
-    mapping(address => address[]) private s_researcherCampaigns;
-
-    // Mapping to check if an address is a valid campaign
-    mapping(address => bool) public s_isValidCampaign;
+    // Mappings
+    mapping(address => address[]) private s_researcherCampaigns; // Mapping from researcher address to their campaign addresses
+    mapping(address => bool) public s_isValidCampaign; // Mapping to check if an address is a valid campaign
 
     // Campaign metadata
     struct CampaignMetadata {
         string title;
         string description;
-        string imageURI;
+        string metadataURI;
         string category;
         uint256 createdAt;
         address researcher;
@@ -49,7 +48,9 @@ contract MomentumFactory {
         address indexed researcher, address indexed campaignAddress, uint256 fundingGoal, uint256 deadline, string title
     );
 
-    // --- Functions ---
+    //////////////////////////////////
+    ///////// Main Functions /////////
+    //////////////////////////////////
 
     /**
      * @notice Creates a new research campaign with metadata
@@ -63,7 +64,7 @@ contract MomentumFactory {
     function createCampaign(
         uint256 _fundingGoal,
         uint256 _deadlineInSeconds,
-        string memory _campaignImageURI,
+        string memory _campaignMetadataURI,
         string memory _title,
         string memory _description,
         string memory _category
@@ -77,13 +78,8 @@ contract MomentumFactory {
         }
 
         // Deploy new campaign
-        Campaign newCampaign = new Campaign(msg.sender, _fundingGoal, _deadlineInSeconds, _campaignImageURI);
+        Campaign newCampaign = new Campaign(msg.sender, _fundingGoal, _deadlineInSeconds, _campaignMetadataURI);
         campaignAddress = address(newCampaign);
-
-        // Verify deployment succeeded
-        if (campaignAddress == address(0)) {
-            revert MomentumFactory__CampaignCreationFailed();
-        }
 
         // Store campaign reference
         s_deployedCampaigns.push(campaignAddress);
@@ -94,7 +90,7 @@ contract MomentumFactory {
         s_campaignMetadata[campaignAddress] = CampaignMetadata({
             title: _title,
             description: _description,
-            imageURI: _campaignImageURI,
+            metadataURI: _campaignMetadataURI,
             category: _category,
             createdAt: block.timestamp,
             researcher: msg.sender
@@ -103,31 +99,32 @@ contract MomentumFactory {
         emit CampaignCreated(msg.sender, campaignAddress, _fundingGoal, block.timestamp + _deadlineInSeconds, _title);
     }
 
-    /**
-     * @notice Get paginated list of all campaigns
-     * @param _offset Starting index
-     * @param _limit Number of campaigns to return
-     * @return campaigns Array of campaign addresses
-     */
-    function getDeployedCampaigns(uint256 _offset, uint256 _limit) public view returns (address[] memory campaigns) {
-        uint256 totalCampaigns = s_deployedCampaigns.length;
+    //  At the MVP stage, we will not implement pagination to keep things simple.
+    // /**
+    //  * @notice Get paginated list of all campaigns
+    //  * @param _offset Starting index
+    //  * @param _limit Number of campaigns to return
+    //  * @return campaigns Array of campaign addresses
+    //  */
+    // function getDeployedCampaigns(uint256 _offset, uint256 _limit) public view returns (address[] memory campaigns) {
+    //     uint256 totalCampaigns = s_deployedCampaigns.length;
 
-        if (_offset >= totalCampaigns) {
-            return new address[](0);
-        }
+    //     if (_offset >= totalCampaigns) {
+    //         return new address[](0);
+    //     }
 
-        uint256 end = _offset + _limit;
-        if (end > totalCampaigns) {
-            end = totalCampaigns;
-        }
+    //     uint256 end = _offset + _limit;
+    //     if (end > totalCampaigns) {
+    //         end = totalCampaigns;
+    //     }
 
-        uint256 size = end - _offset;
-        campaigns = new address[](size);
+    //     uint256 size = end - _offset;
+    //     campaigns = new address[](size);
 
-        for (uint256 i = 0; i < size; i++) {
-            campaigns[i] = s_deployedCampaigns[_offset + i];
-        }
-    }
+    //     for (uint256 i = 0; i < size; i++) {
+    //         campaigns[i] = s_deployedCampaigns[_offset + i];
+    //     }
+    // }
 
     /**
      * @notice Get all campaigns (use with caution for large arrays)

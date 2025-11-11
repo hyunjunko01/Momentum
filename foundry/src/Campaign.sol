@@ -3,18 +3,16 @@
 pragma solidity ^0.8.18;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title Campaign
+ * @title Campaign contract
  * @author Tyler Ko
  * @notice A robust and secure contract for a single research campaign,
  * implementing a clear state machine and best practices.
  */
 contract Campaign is ReentrancyGuard, ERC721 {
     // --- Custom Errors ---
-    // Custom errors are more gas-efficient than require statements with strings.
     error Campaign__NotResearcher();
     error Campaign__NotInOpenState();
     error Campaign__NotInSuccessfulState();
@@ -26,13 +24,15 @@ contract Campaign is ReentrancyGuard, ERC721 {
     error Campaign__MustSendMoreThanZero();
     error Campaign__NoFundsToRefund();
     error Campaign__NotInCorrectStateForUpdate();
+    error Campaign__NotABacker();
+    error Campaign__AlreadyClaimedNFT();
+    error Campaign__InvalidTokenId();
 
     // --- Enums ---
-    // Defines the lifecycle stages of the campaign.
     enum CampaignState {
         Open, // Accepting funds
-        Successful, // Goal met by deadline
-        Failed, // Goal not met by deadline
+        Successful, // Goal met by deadline and met enough funds
+        Failed, // Goal met by deadline but not enough funds
         PaidOut // Funds withdrawn by researcher
 
     }
@@ -45,15 +45,15 @@ contract Campaign is ReentrancyGuard, ERC721 {
     CampaignState public s_campaignState;
     uint256 public s_totalFunded;
 
-    // --- NFT Related ---
+    // NFT Related
     uint256 private s_tokenCounter;
     string private s_campaignMetadataURI;
 
-    // Mapping from a backer's address to their contribution amount.
+    // Mappings
     mapping(address => uint256) public s_backers;
-    mapping(uint256 => string) private s_tokenIdToUri;
     mapping(address => bool) public s_hasClaimedNFT;
 
+    // Arrays
     string[] public s_researchUpdates;
 
     // --- Events ---
@@ -62,6 +62,7 @@ contract Campaign is ReentrancyGuard, ERC721 {
     event CampaignFinalized(CampaignState finalState);
     event Refunded(address indexed backer, uint256 amount);
     event ResearchUpdateSubmitted(address indexed researcher, string ipfsHash);
+    event NftClaimed(address indexed backer, uint256 tokenId);
 
     // --- Modifiers ---
     modifier onlyResearcher() {
@@ -72,23 +73,28 @@ contract Campaign is ReentrancyGuard, ERC721 {
     }
 
     // --- Constructor ---
-    constructor(address _researcher, uint256 _fundingGoal, uint256 _deadlineInSeconds, string memory _campaignImageURI)
-        ERC721("ResearchUpdateNFT", "RUNFT")
-    {
+    constructor(
+        address _researcher,
+        uint256 _fundingGoal,
+        uint256 _deadlineInSeconds,
+        string memory _campaignMetadataURI
+    ) ERC721("MomentumPatronageNFT", "MOMP") {
         s_tokenCounter = 0;
         i_researcher = _researcher;
         i_fundingGoal = _fundingGoal;
         i_deadline = block.timestamp + _deadlineInSeconds;
-        s_campaignMetadataURI = _campaignImageURI;
+        s_campaignMetadataURI = _campaignMetadataURI;
         s_campaignState = CampaignState.Open;
     }
 
-    // --- Core Functions ---
+    //////////////////////////////////
+    ///////// Main Functions /////////
+    //////////////////////////////////
 
     /**
      * @notice Allows anyone to fund the campaign before the deadline.
      */
-    function fund() external payable {
+    function fund() external payable nonReentrant {
         // This function should only be callable when the campaign is Open.
         if (s_campaignState != CampaignState.Open) {
             revert Campaign__NotInOpenState();
@@ -104,7 +110,6 @@ contract Campaign is ReentrancyGuard, ERC721 {
 
         s_backers[msg.sender] += msg.value;
         s_totalFunded += msg.value;
-        s_hasClaimedNFT[msg.sender] = false;
         emit CampaignFunded(msg.sender, msg.value);
     }
 
@@ -112,8 +117,10 @@ contract Campaign is ReentrancyGuard, ERC721 {
      * @notice Anyone can call this function after the deadline has passed
      * to transition the campaign from 'Open' to 'Successful' or 'Failed'.
      * This is a critical state transition that should happen only once.
+     * The reason for allowing anyone to call this is to ensure that
+     *    the campaign can be finalized even if the researcher is inactive.
      */
-    function finalizeCampaign() external {
+    function finalizeCampaign() external nonReentrant {
         // Can only be called after the deadline.
         if (block.timestamp <= i_deadline) {
             revert Campaign__DeadlineNotPassed();
@@ -139,12 +146,16 @@ contract Campaign is ReentrancyGuard, ERC721 {
             revert Campaign__NotInSuccessfulState();
         }
 
+        // Checks
         uint256 amountToWithdraw = address(this).balance;
+
+        // Effects
         s_campaignState = CampaignState.PaidOut;
 
+        // Interactions
         (bool success,) = i_researcher.call{value: amountToWithdraw}("");
         if (!success) {
-            revert Campaign__TransferFailed(); // 상태 되돌리지 않기!
+            revert Campaign__TransferFailed(); // Revert if the transfer fails
         }
 
         emit CampaignWithdrawn(i_researcher, amountToWithdraw);
@@ -163,7 +174,7 @@ contract Campaign is ReentrancyGuard, ERC721 {
         // Checks: Get the amount this user is owed.
         uint256 fundedAmount = s_backers[msg.sender];
         if (fundedAmount == 0) {
-            revert Campaign__NoFundsToRefund(); // Re-using error for "no funds to claim"
+            revert Campaign__NoFundsToRefund();
         }
 
         // Effects: Set the user's balance to zero BEFORE sending money.
@@ -179,24 +190,42 @@ contract Campaign is ReentrancyGuard, ERC721 {
         emit Refunded(msg.sender, fundedAmount);
     }
 
+    /**
+     * @notice Backers can claim an NFT only if the campaign was successful.
+     */
     function claimNft() external nonReentrant {
         if (s_campaignState != CampaignState.Successful) {
             revert Campaign__NotInSuccessfulState();
         }
 
         if (s_backers[msg.sender] == 0) {
-            revert Campaign__NoFundsToRefund();
+            revert Campaign__NotABacker();
         }
-        s_tokenIdToUri[s_tokenCounter] = s_campaignMetadataURI;
+
+        if (s_hasClaimedNFT[msg.sender]) {
+            revert Campaign__AlreadyClaimedNFT();
+        }
+
         _safeMint(msg.sender, s_tokenCounter);
-        s_tokenCounter++;
         s_hasClaimedNFT[msg.sender] = true;
+        emit NftClaimed(msg.sender, s_tokenCounter);
+        s_tokenCounter++;
     }
 
+    /**
+     * @notice Returns the token URI for a given token ID.
+     * To optimize gas, all tokens share the same metadata URI.
+     */
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        return s_tokenIdToUri[tokenId];
+        if (s_tokenCounter <= tokenId) {
+            revert Campaign__InvalidTokenId();
+        }
+        return s_campaignMetadataURI;
     }
 
+    /**
+     * @notice Researcher can submit research updates (IPFS hash)
+     */
     function submitResearchUpdate(string memory _ipfsHash) external onlyResearcher {
         // when the campaign is in Failed state, updates are not allowed
         if (s_campaignState == CampaignState.Failed) {
