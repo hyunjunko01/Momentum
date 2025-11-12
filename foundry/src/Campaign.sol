@@ -35,7 +35,6 @@ contract Campaign is ReentrancyGuard, ERC721 {
         Successful, // Goal met by deadline and met enough funds
         Failed, // Goal met by deadline but not enough funds
         PaidOut // Funds withdrawn by researcher
-
     }
 
     // --- State Variables ---
