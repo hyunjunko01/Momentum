@@ -14,6 +14,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 contract Campaign is ReentrancyGuard, ERC721 {
     // --- Custom Errors ---
     error Campaign__NotResearcher();
+    error Campaign__CampaignNotSuccessful();
     error Campaign__NotInOpenState();
     error Campaign__NotInSuccessfulState();
     error Campaign__NotInFailedState();
@@ -194,8 +195,8 @@ contract Campaign is ReentrancyGuard, ERC721 {
      * @notice Backers can claim an NFT only if the campaign was successful.
      */
     function claimNft() external nonReentrant {
-        if (s_campaignState != CampaignState.Successful) {
-            revert Campaign__NotInSuccessfulState();
+        if (s_campaignState != CampaignState.Successful && s_campaignState != CampaignState.PaidOut) {
+            revert Campaign__CampaignNotSuccessful();
         }
 
         if (s_backers[msg.sender] == 0) {
