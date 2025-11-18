@@ -11,7 +11,7 @@ import Link from 'next/link';
 // For this example, it's defined here for completeness.
 const momentumFactoryAbi = MomentumFactoryAbi;
 
-const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a'
+const FACTORY_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
 
 const InputField: FC<any> = ({ id, label, error, children, ...props }) => (
     <div>
@@ -29,10 +29,9 @@ interface FormData {
     category: string;
     fundingGoal: string;
     deadlineInDays: string;
+    campaignMetadataURI: string;
 }
 type FormErrors = Partial<Record<keyof FormData, string>>;
-
-const categories = ['Physics', 'Biotechnology', 'AI', 'Environmental Science'];
 
 export const CreateCampaignForm = () => {
     // --- State Management ---
@@ -41,7 +40,8 @@ export const CreateCampaignForm = () => {
         description: '',
         category: '',
         fundingGoal: '',
-        deadlineInDays: ''
+        deadlineInDays: '',
+        campaignMetadataURI: ''
     });
     const [errors, setErrors] = useState<FormErrors>({});
     const [newCampaignAddress, setNewCampaignAddress] = useState<string | null>(null);
@@ -107,6 +107,7 @@ export const CreateCampaignForm = () => {
             args: [
                 parseEther(formData.fundingGoal),
                 BigInt(parseInt(formData.deadlineInDays) * 24 * 60 * 60),
+                formData.campaignMetadataURI,
                 formData.title,
                 formData.description,
                 formData.category,

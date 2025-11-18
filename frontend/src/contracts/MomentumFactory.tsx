@@ -64,30 +64,11 @@ export const MomentumFactoryAbi = [
                 "name": "_deadlineInSeconds",
                 "type": "uint256",
                 "internalType": "uint256"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "",
-                "type": "address",
-                "internalType": "address"
-            }
-        ],
-        "stateMutability": "nonpayable"
-    },
-    {
-        "type": "function",
-        "name": "createCampaign",
-        "inputs": [
-            {
-                "name": "_fundingGoal",
-                "type": "uint256",
-                "internalType": "uint256"
             },
             {
-                "name": "_deadlineInSeconds",
-                "type": "uint256",
-                "internalType": "uint256"
+                "name": "_campaignMetadataURI",
+                "type": "string",
+                "internalType": "string"
             },
             {
                 "name": "_title",
@@ -193,6 +174,11 @@ export const MomentumFactoryAbi = [
                         "internalType": "string"
                     },
                     {
+                        "name": "metadataURI",
+                        "type": "string",
+                        "internalType": "string"
+                    },
+                    {
                         "name": "category",
                         "type": "string",
                         "internalType": "string"
@@ -225,30 +211,6 @@ export const MomentumFactoryAbi = [
         "outputs": [
             {
                 "name": "",
-                "type": "address[]",
-                "internalType": "address[]"
-            }
-        ],
-        "stateMutability": "view"
-    },
-    {
-        "type": "function",
-        "name": "getDeployedCampaigns",
-        "inputs": [
-            {
-                "name": "_offset",
-                "type": "uint256",
-                "internalType": "uint256"
-            },
-            {
-                "name": "_limit",
-                "type": "uint256",
-                "internalType": "uint256"
-            }
-        ],
-        "outputs": [
-            {
-                "name": "campaigns",
                 "type": "address[]",
                 "internalType": "address[]"
             }
@@ -305,6 +267,11 @@ export const MomentumFactoryAbi = [
             },
             {
                 "name": "description",
+                "type": "string",
+                "internalType": "string"
+            },
+            {
+                "name": "metadataURI",
                 "type": "string",
                 "internalType": "string"
             },
