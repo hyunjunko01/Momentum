@@ -7,7 +7,7 @@ import { AlertCircle, Clock } from 'lucide-react';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 import Link from 'next/link';
 
-const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a' as const;
+const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
 interface CampaignData {
     address: `0x${string}`;

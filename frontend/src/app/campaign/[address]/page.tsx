@@ -12,7 +12,7 @@ import { DebugTimeTravel } from '../../../components/functions/DebugTimeTravel';
 import { MomentumFactoryAbi } from '@/contracts/MomentumFactory';
 import { CampaignAbi } from '@/contracts/Campaign';
 
-const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a' as `0x${string}`;
+const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
 // --- Type Definitions ---
 interface CampaignMetadata {

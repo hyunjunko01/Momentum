@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ChangeEvent } from 'react';
-import { Upload, Loader, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, Loader } from 'lucide-react';
 
 type Status = 'idle' | 'uploading' | 'success' | 'error';
 

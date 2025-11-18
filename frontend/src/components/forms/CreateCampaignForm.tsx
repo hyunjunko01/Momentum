@@ -11,7 +11,7 @@ import Link from 'next/link';
 // For this example, it's defined here for completeness.
 const momentumFactoryAbi = MomentumFactoryAbi;
 
-const FACTORY_ADDRESS = '0x4c084f922Ee81beDFa69dc1B5D1c44459222036a'
+const FACTORY_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS as `0x${string}`;
 
 const InputField: FC<any> = ({ id, label, error, children, ...props }) => (
     <div>
@@ -31,8 +31,6 @@ interface FormData {
     deadlineInDays: string;
 }
 type FormErrors = Partial<Record<keyof FormData, string>>;
-
-const categories = ['Physics', 'Biotechnology', 'AI', 'Environmental Science'];
 
 export const CreateCampaignForm = () => {
     // --- State Management ---
